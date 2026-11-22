@@ -1,0 +1,59 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/doc_generator?currentSchema=public}
+    username: ${SPRING_DATASOURCE_USERNAME:archspec}
+    password: ${SPRING_DATASOURCE_PASSWORD:archspec_doc_pass}
+    driver-class-name: org.postgresql.Driver
+  jackson:
+    default-property-inclusion: always
+  # SQL 初始化配置（开发环境可设为 always，生产环境设为 never）
+  sql:
+    init:
+      mode: ${SPRING_SQL_INIT_MODE:never}
+      schema-locations: classpath:db/init-schema.sql
+      data-locations: classpath:db/init-data.sql
+      continue-on-error: false
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: INPUT
+      db-type: POSTGRE_SQL
+
+logging:
+  level:
+    com.aiid.aidoc: INFO
+
+# JWT 配置
+jwt:
+  secret: ${JWT_SECRET:archspec-default-jwt-secret-key-2024}
+  expiration: 604800000  # 7天
+
+# 授权配置
+license:
+  enabled: true
+  path: ${LICENSE_PATH:license.lic}
+
+# OSS 对象存储配置（用于审查文件上传）
+oss:
+  bucket: ${OSS_BUCKET:}
+  region: ${OSS_REGION:cn-guangzhou}
+  endpoint: ${OSS_ENDPOINT:sts.cn-guangzhou.aliyuncs.com}
+  host: ${OSS_HOST:}
+  upload-dir: ${OSS_UPLOAD_DIR:reviews/}
+  expire-seconds: ${OSS_EXPIRE_SECONDS:3600}
+  sts-role-arn: ${OSS_STS_ROLE_ARN:}
+  access-key-id: ${OSS_ACCESS_KEY_ID:}
+  access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+
+# Application base URL (used to construct Agent-accessible URLs)
+app:
+  base-url: ${APP_BASE_URL:http://java:8080}
+
