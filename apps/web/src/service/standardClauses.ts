@@ -5,6 +5,9 @@ export interface Standard {
   number: string         // GB 50052-2009
   name: string           // 供配电系统设计规范
   profession: string
+  category: 'superior' | 'internal'
+  effectiveDate?: string
+  expiryDate?: string
   status: 'active' | 'superseded'
   supersededBy?: string
   description?: string
@@ -119,6 +122,7 @@ export async function getStandardTreeApi(): Promise<StandardTreeNode[]> {
 
 export async function createStandardApi(data: {
   number: string; name: string; profession: string; status?: string;
+  category?: string; effectiveDate?: string; expiryDate?: string;
   supersededBy?: string; description?: string
 }): Promise<Standard> {
   const res = await fetch(`${API_BASE}/standards`, {
@@ -129,6 +133,27 @@ export async function createStandardApi(data: {
   const json = await res.json()
   if (json.code === 200 || json.code === 201) return json.data
   throw new Error(json.message || '新增标准失败')
+}
+
+export async function importStandardApi(data: {
+  number: string
+  name: string
+  profession: string
+  category: 'superior' | 'internal'
+  status: 'active' | 'superseded'
+  effectiveDate?: string
+  expiryDate?: string
+  description?: string
+  content: string
+}): Promise<Standard> {
+  const res = await fetch(`${API_BASE}/standards/import`, {
+    method: 'POST',
+    headers: getApiHeaders(),
+    body: JSON.stringify(data),
+  })
+  const json = await res.json()
+  if (json.code === 200 || json.code === 201) return json.data
+  throw new Error(json.message || '导入制度失败')
 }
 
 export async function updateStandardApi(id: string, data: Partial<Standard>): Promise<Standard> {

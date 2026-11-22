@@ -121,8 +121,8 @@ const menuGroups: MenuGroup[] = [
     label: '工具',
     items: [
       { key: 'templates', label: '模板管理', icon: Files, requiresAuth: true, action: 'view' },
-      { key: 'review', label: '规范审查', icon: Edit, requiresAuth: true, action: 'view' },
-      { key: 'clauses', label: '规范条文', icon: Reading, requiresAuth: true, action: 'view' },
+      { key: 'review', label: '制度冲突审查', icon: Edit, requiresAuth: true, action: 'view' },
+      { key: 'clauses', label: '制度库', icon: Reading, requiresAuth: true, action: 'view' },
       { key: 'memory', label: '记忆管理', icon: Coin, requiresAuth: true, action: 'view' },
     ]
   },
@@ -662,10 +662,10 @@ onMounted(async () => {
         <div class="welcome-banner">
           <div class="welcome-banner-content">
             <h1 class="welcome-title">
-              {{ isAuthenticated() ? `${greetingTime}，${userDisplayName}` : '欢迎使用 AIAD 智绘设计' }}
+              {{ isAuthenticated() ? `${greetingTime}，${userDisplayName}` : '欢迎使用制度冲突审查系统' }}
             </h1>
             <p class="welcome-subtitle">
-              AI驱动 + 知识库辅助，30分钟完成专业设计文档
+              条文级对照 · 新旧替换模拟 · 双方原文证据 · 人工复核报告
             </p>
             <div class="welcome-tags">
               <span class="welcome-tag"><el-icon :size="14"><MagicStick /></el-icon> AI 智能生成</span>
@@ -685,22 +685,22 @@ onMounted(async () => {
         <section class="quick-actions">
           <h3 class="section-label">快捷操作</h3>
           <div class="action-cards-grid">
-            <div class="action-card" @click="handleMenuClick(findMenuItem('create'))">
+            <div class="action-card" @click="handleMenuClick(findMenuItem('review'))">
               <div class="action-card-icon" style="background: #EFF6FF; color: #2563EB;">
                 <el-icon :size="24"><EditPen /></el-icon>
               </div>
               <div class="action-card-body">
-                <div class="action-card-title">新建文档</div>
-                <div class="action-card-desc">创建新的施工图设计说明</div>
+                <div class="action-card-title">新建制度审查</div>
+                <div class="action-card-desc">检查上级符合性、内部一致性和新旧替换冲突</div>
               </div>
             </div>
-            <div class="action-card" @click="handleMenuClick(findMenuItem('documents'))">
+            <div class="action-card" @click="handleMenuClick(findMenuItem('clauses'))">
               <div class="action-card-icon" style="background: #ECFDF5; color: #059669;">
                 <el-icon :size="24"><Document /></el-icon>
               </div>
               <div class="action-card-body">
-                <div class="action-card-title">我的文档</div>
-                <div class="action-card-desc">查看和管理已有文档</div>
+                <div class="action-card-title">制度库</div>
+                <div class="action-card-desc">导入上级文件和内部制度，维护效力与版本</div>
               </div>
             </div>
             <div class="action-card" @click="handleMenuClick(findMenuItem('qa'))">
