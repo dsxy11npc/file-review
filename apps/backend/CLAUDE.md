@@ -84,6 +84,7 @@ apps/backend/
 
 ## 审查记录接口
 
-- `POST /api/v1/reviews` 只接收审查维度、规范 ID、严格度、文档名和 `ossFileKey`，且两者都仅允许 `.md` / `.txt`
-- `GET /api/v1/reviews/{id}` 仅返回当前登录用户自己的记录，响应中不再包含 `content`
-- `GET /api/v1/reviews/{id}/source-access` 仅返回 owner 的短期 OSS 读取信息，不直接返回文件内容
+- 当前制度冲突审查主流程使用 `/api/v1/conflict-reviews`，直接接收 `.md` / `.txt` 正文并同步执行本地规则审查，不依赖 OSS、Clawith 或外部 Agent
+- 支持 `superior` / `internal` / `replacement` / `existing` 四类任务，记录基准日期、替换制度、条款数量和引擎版本
+- `GET /api/v1/conflict-reviews/{id}` 仅返回 owner 的记录、原文及双方条文证据；复核接口校验记录归属
+- `/api/v1/reviews` 及 OSS 接口保留用于兼容原外部审查流程，不再是新界面的启动依赖

@@ -56,3 +56,29 @@ CREATE TABLE doc_generator.document_blocks (
   INDEX idx_deleted (document_id, is_deleted),
   FULLTEXT INDEX ft_content (content)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 制度冲突审查第一版：制度效力与可追溯审查结果
+ALTER TABLE standard ADD COLUMN IF NOT EXISTS category VARCHAR(20) DEFAULT 'internal';
+ALTER TABLE standard ADD COLUMN IF NOT EXISTS effective_date DATE;
+ALTER TABLE standard ADD COLUMN IF NOT EXISTS expiry_date DATE;
+CREATE INDEX IF NOT EXISTS idx_standard_category ON standard(category);
+CREATE INDEX IF NOT EXISTS idx_standard_effective_dates ON standard(effective_date, expiry_date);
+
+ALTER TABLE review_record ADD COLUMN IF NOT EXISTS review_type VARCHAR(30);
+ALTER TABLE review_record ADD COLUMN IF NOT EXISTS baseline_date DATE;
+ALTER TABLE review_record ADD COLUMN IF NOT EXISTS clause_count INT DEFAULT 0;
+ALTER TABLE review_record ADD COLUMN IF NOT EXISTS engine_version VARCHAR(50);
+ALTER TABLE review_record ADD COLUMN IF NOT EXISTS replaced_standard_ids JSONB DEFAULT '[]';
+
+ALTER TABLE review_issue ADD COLUMN IF NOT EXISTS conflict_type VARCHAR(50);
+ALTER TABLE review_issue ADD COLUMN IF NOT EXISTS review_scope VARCHAR(30);
+ALTER TABLE review_issue ADD COLUMN IF NOT EXISTS source_clause_number VARCHAR(50);
+ALTER TABLE review_issue ADD COLUMN IF NOT EXISTS standard_id VARCHAR(50);
+ALTER TABLE review_issue ADD COLUMN IF NOT EXISTS clause_id VARCHAR(50);
+ALTER TABLE review_issue ADD COLUMN IF NOT EXISTS confidence DECIMAL(3,2);
+ALTER TABLE review_issue ADD COLUMN IF NOT EXISTS review_comment TEXT;
+CREATE INDEX IF NOT EXISTS idx_review_issue_clause ON review_issue(clause_id);
+
+ALTER TABLE review_issue DROP CONSTRAINT IF EXISTS review_issue_dimension_check;
+ALTER TABLE review_issue ADD CONSTRAINT review_issue_dimension_check
+  CHECK (dimension IN ('compliance', 'completeness', 'terminology', 'consistency'));

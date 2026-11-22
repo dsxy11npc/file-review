@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -15,11 +16,14 @@ public class ReviewRecord {
     private String id;
     private String userId;
     private String documentName;
-    /**
-     * 兼容字段：审查流程已不再读写。
-     */
-    @Deprecated
     private String content;
+    private String reviewType;
+    private LocalDate baselineDate;
+    private Integer clauseCount;
+    private String engineVersion;
+
+    @TableField(typeHandler = JsonbTypeHandler.class)
+    private String replacedStandardIds;
 
     @TableField(typeHandler = JsonbTypeHandler.class)
     private String dimensions;

@@ -1,5 +1,6 @@
 package com.aiid.aidoc.service.impl;
 
+import com.aiid.aidoc.api.dto.StandardImportRequest;
 import com.aiid.aidoc.api.dto.StandardTreeResponse;
 import com.aiid.aidoc.model.entity.Checkpoint;
 import com.aiid.aidoc.model.entity.Clause;
@@ -8,6 +9,7 @@ import com.aiid.aidoc.repository.mapper.CheckpointMapper;
 import com.aiid.aidoc.repository.mapper.ClauseMapper;
 import com.aiid.aidoc.repository.mapper.StandardMapper;
 import com.aiid.aidoc.service.StandardService;
+import com.aiid.aidoc.service.support.RegulationTextParser;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ public class StandardServiceImpl implements StandardService {
     private final StandardMapper standardMapper;
     private final ClauseMapper clauseMapper;
     private final CheckpointMapper checkpointMapper;
+    private final RegulationTextParser textParser;
 
     @Override
     public Page<Standard> list(String profession, String keyword, long page, long pageSize) {
@@ -83,12 +86,57 @@ public class StandardServiceImpl implements StandardService {
     }
 
     @Override
+    @Transactional
+    public Standard importStandard(StandardImportRequest request, String userId) {
+        if (request.getName() == null || request.getName().isBlank()) {
+            throw new IllegalArgumentException("制度名称不能为空");
+        }
+        if (request.getNumber() == null || request.getNumber().isBlank()) {
+            throw new IllegalArgumentException("制度编号不能为空");
+        }
+        List<RegulationTextParser.ParsedClause> parsedClauses = textParser.parse(request.getContent());
+        if (parsedClauses.isEmpty()) {
+            throw new IllegalArgumentException("未解析出有效条文");
+        }
+
+        Standard standard = new Standard();
+        standard.setNumber(request.getNumber().trim());
+        standard.setName(request.getName().trim());
+        standard.setProfession(request.getProfession());
+        standard.setCategory(request.getCategory() == null || request.getCategory().isBlank()
+                ? "internal" : request.getCategory());
+        standard.setStatus(request.getStatus() == null || request.getStatus().isBlank()
+                ? "active" : request.getStatus());
+        standard.setEffectiveDate(request.getEffectiveDate());
+        standard.setExpiryDate(request.getExpiryDate());
+        standard.setDescription(request.getDescription());
+        standard.setUserId(userId);
+        create(standard);
+
+        for (RegulationTextParser.ParsedClause parsed : parsedClauses) {
+            Clause clause = new Clause();
+            clause.setId(UUID.randomUUID().toString());
+            clause.setStandardId(standard.getId());
+            clause.setClauseNumber(parsed.clauseNumber());
+            clause.setContent(parsed.content());
+            clause.setTags("[]");
+            clause.setCreatedAt(LocalDateTime.now());
+            clause.setUpdatedAt(LocalDateTime.now());
+            clauseMapper.insert(clause);
+        }
+        return standard;
+    }
+
+    @Override
     public Standard update(String id, Standard data) {
         Standard existing = standardMapper.selectById(id);
         if (existing == null) return null;
         if (data.getNumber() != null) existing.setNumber(data.getNumber());
         if (data.getName() != null) existing.setName(data.getName());
         if (data.getProfession() != null) existing.setProfession(data.getProfession());
+        if (data.getCategory() != null) existing.setCategory(data.getCategory());
+        if (data.getEffectiveDate() != null) existing.setEffectiveDate(data.getEffectiveDate());
+        if (data.getExpiryDate() != null) existing.setExpiryDate(data.getExpiryDate());
         if (data.getStatus() != null) existing.setStatus(data.getStatus());
         if (data.getSupersededBy() != null) existing.setSupersededBy(data.getSupersededBy());
         if (data.getDescription() != null) existing.setDescription(data.getDescription());
