@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -14,6 +15,13 @@ public class ReviewIssue {
     private String recordId;
     private String severity;
     private String dimension;
+    private String conflictType;
+    private String reviewScope;
+    private String sourceClauseNumber;
+    private String standardId;
+    private String clauseId;
+    private BigDecimal confidence;
+    private String reviewComment;
     private String title;
     private String description;
     private String originalSnippet;

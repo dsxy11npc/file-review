@@ -1,0 +1,56 @@
+# ===== IDE =====
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.trae/
+.claude/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+Desktop.ini
+nul
+
+# ===== Java / Maven =====
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# ===== Python =====
+*.pyc
+__pycache__/
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# ===== Node.js =====
+node_modules/
+dist/
+*.log
+
+apps/web/bsp-user-front
+chapter-prompt/
+apps/web/components.d.ts
+
+# ===== 敏感文件 =====
+*.lic
+apps/backend/keys/private.key
+.env
+
+# ===== 项目特定 =====
+apps/agent/tests/*
+apps/agent/logs/*
+.claude/*
+
+# License 敏感文件
+apps/backend/keys/private.key
+apps/backend/*.lic
+*.lic
+apps/backend/.idea/*
+nul
+apps/backend/ai-doc-system-rest/target/ai-doc-system-rest-1.0.0.jar

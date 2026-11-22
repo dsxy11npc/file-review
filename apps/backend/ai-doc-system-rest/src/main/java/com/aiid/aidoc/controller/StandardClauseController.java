@@ -4,6 +4,7 @@ import com.aiid.aidoc.api.dto.ClauseCreateRequest;
 import com.aiid.aidoc.api.dto.CheckpointRequest;
 import com.aiid.aidoc.api.dto.PaginationResponse;
 import com.aiid.aidoc.api.dto.StandardCreateRequest;
+import com.aiid.aidoc.api.dto.StandardImportRequest;
 import com.aiid.aidoc.api.dto.StandardTreeResponse;
 import com.aiid.aidoc.model.common.ApiResponse;
 import com.aiid.aidoc.model.entity.Checkpoint;
@@ -63,11 +64,27 @@ public class StandardClauseController {
         standard.setNumber(body.getNumber());
         standard.setName(body.getName());
         standard.setProfession(body.getProfession());
+        standard.setCategory(body.getCategory());
+        standard.setEffectiveDate(body.getEffectiveDate());
+        standard.setExpiryDate(body.getExpiryDate());
         standard.setStatus(body.getStatus() != null ? body.getStatus() : "active");
         standard.setSupersededBy(body.getSupersededBy());
         standard.setDescription(body.getDescription());
         standard.setUserId(userId);
         return ApiResponse.created(standardService.create(standard));
+    }
+
+    @PostMapping("/standards/import")
+    public ApiResponse<Standard> importStandard(
+            @RequestBody StandardImportRequest body,
+            HttpServletRequest request
+    ) {
+        try {
+            String userId = (String) request.getAttribute("userId");
+            return ApiResponse.created(standardService.importStandard(body, userId));
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.message(400, e.getMessage());
+        }
     }
 
     @PutMapping("/standards/{id}")
@@ -79,6 +96,9 @@ public class StandardClauseController {
         data.setNumber(body.getNumber());
         data.setName(body.getName());
         data.setProfession(body.getProfession());
+        data.setCategory(body.getCategory());
+        data.setEffectiveDate(body.getEffectiveDate());
+        data.setExpiryDate(body.getExpiryDate());
         data.setStatus(body.getStatus());
         data.setSupersededBy(body.getSupersededBy());
         data.setDescription(body.getDescription());

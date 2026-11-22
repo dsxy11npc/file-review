@@ -2,16 +2,19 @@
   <div class="clauses-page">
     <!-- 头部 -->
     <div class="section-header">
-      <h2>规范条文管理</h2>
-      <p class="section-desc">管理规范标准、条文和检查点，用于文档审查时的语义匹配与合规比对</p>
+      <h2>制度库与条文管理</h2>
+      <p class="section-desc">维护上级文件、内部制度、效力日期和条文，作为冲突审查的对照依据</p>
     </div>
 
     <div class="clauses-body">
       <!-- ===== 左栏：规范标准列表 ===== -->
       <aside class="clauses-sidebar">
         <div class="sidebar-header">
-          <span class="sidebar-title">规范标准</span>
-          <el-button size="small" :icon="Plus" circle @click="openStandardDialog()" title="新增标准" />
+          <span class="sidebar-title">制度文件</span>
+          <div>
+            <el-button size="small" :icon="Upload" circle @click="importDialogVisible = true" title="导入制度文本" />
+            <el-button size="small" :icon="Plus" circle @click="openStandardDialog()" title="新增制度" />
+          </div>
         </div>
         <div class="sidebar-search">
           <el-input
@@ -71,6 +74,11 @@
               <el-button size="small" text @click="openStandardDialog(selectedStandard)">编辑</el-button>
               <el-button size="small" text type="danger" @click="handleDeleteStandard">删除</el-button>
             </div>
+          </div>
+          <div class="main-desc">
+            {{ selectedStandard.category === 'superior' ? '上级文件' : '内部制度' }}
+            <span v-if="selectedStandard.effectiveDate"> · 生效：{{ selectedStandard.effectiveDate }}</span>
+            <span v-if="selectedStandard.expiryDate"> · 失效：{{ selectedStandard.expiryDate }}</span>
           </div>
           <div v-if="selectedStandard.description" class="main-desc">
             {{ selectedStandard.description }}
@@ -147,6 +155,29 @@
       </main>
     </div>
 
+    <el-dialog v-model="importDialogVisible" title="导入制度文本" width="680px" :close-on-click-modal="false" destroy-on-close>
+      <el-form label-position="top" size="small">
+        <el-row :gutter="12">
+          <el-col :span="12"><el-form-item label="制度编号" required><el-input v-model="importForm.number" placeholder="如 党办〔2026〕1号" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="制度名称" required><el-input v-model="importForm.name" /></el-form-item></el-col>
+        </el-row>
+        <el-row :gutter="12">
+          <el-col :span="8"><el-form-item label="文件类别"><el-select v-model="importForm.category" style="width:100%"><el-option label="上级文件" value="superior" /><el-option label="内部制度" value="internal" /></el-select></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="生效日期"><el-date-picker v-model="importForm.effectiveDate" value-format="YYYY-MM-DD" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="状态"><el-select v-model="importForm.status" style="width:100%"><el-option label="现行" value="active" /><el-option label="废止" value="superseded" /></el-select></el-form-item></el-col>
+        </el-row>
+        <el-form-item label="选择文本文件">
+          <el-upload accept=".md,.txt" :auto-upload="false" :show-file-list="false" :on-change="handleImportFile">
+            <el-button :icon="Upload">读取 .md / .txt 文件</el-button>
+          </el-upload>
+        </el-form-item>
+        <el-form-item label="制度正文" required>
+          <el-input v-model="importForm.content" type="textarea" :rows="10" placeholder="使用“第一条 ……”“第二条 ……”格式，导入后自动拆分条文" />
+        </el-form-item>
+      </el-form>
+      <template #footer><el-button @click="importDialogVisible = false">取消</el-button><el-button type="primary" :loading="saving" @click="handleImportStandard">导入并解析</el-button></template>
+    </el-dialog>
+
     <!-- ===== 标准弹窗 ===== -->
     <el-dialog v-model="stdDialogVisible" :title="stdEditingId ? '编辑标准' : '新增标准'" width="540px" :close-on-click-modal="false" destroy-on-close>
       <el-form ref="stdFormRef" :model="stdForm" :rules="stdFormRules" label-position="top" size="small">
@@ -161,6 +192,11 @@
               <el-input v-model="stdForm.name" placeholder="如 供配电系统设计规范" />
             </el-form-item>
           </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="8"><el-form-item label="文件类别"><el-select v-model="stdForm.category" style="width:100%"><el-option label="上级文件" value="superior" /><el-option label="内部制度" value="internal" /></el-select></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="生效日期"><el-date-picker v-model="stdForm.effectiveDate" value-format="YYYY-MM-DD" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="失效日期"><el-date-picker v-model="stdForm.expiryDate" value-format="YYYY-MM-DD" style="width:100%" /></el-form-item></el-col>
         </el-row>
         <el-row :gutter="16">
           <el-col :span="12">
@@ -259,11 +295,12 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, ArrowRight } from '@element-plus/icons-vue'
+import { Plus, Search, ArrowRight, Upload } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import {
   getStandardTreeApi as getStandardTree,
   createStandardApi as createStandard,
+  importStandardApi,
   updateStandardApi as updateStandard,
   deleteStandardApi as deleteStandard,
   getClausesByStandardApi as getClausesByStandard,
@@ -341,12 +378,47 @@ async function loadClausesForStandard() {
   standardClauses.value = await getClausesByStandard(selectedStandardId.value)
 }
 
+const importDialogVisible = ref(false)
+const importForm = ref({ number: '', name: '', profession: '综合管理', category: 'superior' as 'superior' | 'internal', effectiveDate: '', status: 'active' as 'active' | 'superseded', content: '' })
+
+async function handleImportFile(uploadFile: { raw?: File }) {
+  const file = uploadFile.raw
+  if (!file) return
+  if (!/\.(md|txt)$/i.test(file.name) || file.size > 1024 * 1024) {
+    ElMessage.warning('仅支持不超过 1MB 的 .md、.txt 文件')
+    return
+  }
+  importForm.value.content = await file.text()
+  if (!importForm.value.name) importForm.value.name = file.name.replace(/\.(md|txt)$/i, '')
+}
+
+async function handleImportStandard() {
+  if (!importForm.value.number.trim() || !importForm.value.name.trim() || !importForm.value.content.trim()) {
+    ElMessage.warning('请填写制度编号、名称和正文')
+    return
+  }
+  saving.value = true
+  try {
+    const created = await importStandardApi(importForm.value)
+    importDialogVisible.value = false
+    importForm.value = { number: '', name: '', profession: '综合管理', category: 'superior', effectiveDate: '', status: 'active', content: '' }
+    await reloadTree()
+    selectedStandardId.value = created.id
+    await loadClausesForStandard()
+    ElMessage.success('制度导入和条文解析已完成')
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '导入失败')
+  } finally {
+    saving.value = false
+  }
+}
+
 // ===== 增删改查：Standard =====
 
 const stdDialogVisible = ref(false)
 const stdEditingId = ref('')
 const stdFormRef = ref<FormInstance | null>(null)
-const stdForm = ref({ number: '', name: '', profession: '', status: 'active' as 'active' | 'superseded', supersededBy: '', description: '' })
+const stdForm = ref({ number: '', name: '', profession: '', category: 'internal' as 'superior' | 'internal', effectiveDate: '', expiryDate: '', status: 'active' as 'active' | 'superseded', supersededBy: '', description: '' })
 const stdFormRules = { number: [{ required: true, message: '请输入规范编号', trigger: 'blur' }], name: [{ required: true, message: '请输入规范名称', trigger: 'blur' }], profession: [{ required: true, message: '请选择专业', trigger: 'change' }] }
 
 function openStandardDialog(standard?: Standard) {
@@ -355,6 +427,9 @@ function openStandardDialog(standard?: Standard) {
     number: standard?.number || '',
     name: standard?.name || '',
     profession: standard?.profession || '',
+    category: standard?.category || 'internal',
+    effectiveDate: standard?.effectiveDate || '',
+    expiryDate: standard?.expiryDate || '',
     status: standard?.status || 'active',
     supersededBy: standard?.supersededBy || '',
     description: standard?.description || '',

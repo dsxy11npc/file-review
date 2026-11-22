@@ -5,7 +5,7 @@
             <line x1="4" y1="14" x2="28" y2="14" stroke="#0078D4" stroke-width="2"/>
             <line x1="12" y1="8" x2="12" y2="28" stroke="#0078D4" stroke-width="2"/>
         </svg>
-        <span class="logo-text">AIAD 智绘设计</span>
+        <span class="logo-text">制度冲突审查系统</span>
         <!-- <img src="@/assets/logo-new.png" alt="建工数科" height="32" /> -->
     </div>
 </template>

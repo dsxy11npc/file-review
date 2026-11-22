@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -14,6 +15,9 @@ public class Standard {
     private String number;
     private String name;
     private String profession;
+    private String category;
+    private LocalDate effectiveDate;
+    private LocalDate expiryDate;
     private String status;
     private String supersededBy;
     private String description;

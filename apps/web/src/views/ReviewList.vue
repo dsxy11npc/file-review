@@ -2,11 +2,11 @@
   <div class="review-list-page">
     <header class="rl-header">
       <div class="rl-header-left">
-        <h1 class="rl-title">规范审查</h1>
-        <p class="rl-desc">查看和管理历史规范审查记录</p>
+        <h1 class="rl-title">制度冲突审查</h1>
+        <p class="rl-desc">管理新制度、上级文件及新旧替换审查记录</p>
       </div>
       <el-button type="primary" size="large" :icon="Plus" @click="createReview">
-        创建规范审查
+        创建制度审查
       </el-button>
     </header>
 
@@ -98,7 +98,7 @@
           </svg>
         </div>
         <h3 class="rl-empty-title">暂无审查记录</h3>
-        <p class="rl-empty-desc">创建您的第一次规范审查，AI 将自动比对建筑规范标准</p>
+        <p class="rl-empty-desc">上传制度文本，逐条对照上级文件和内部制度</p>
         <el-button type="primary" :icon="Plus" @click="createReview">创建规范审查</el-button>
       </div>
 
@@ -160,15 +160,14 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, ArrowRight, WarningFilled, Clock, Document, Search } from '@element-plus/icons-vue'
 import {
-  getReviewListApi,
-  type ReviewDimension,
-  type ReviewRecordListItemData,
-} from '../service/reviewService'
+  getConflictReviewList,
+  type ConflictReviewListItem,
+} from '../service/conflictReview'
 
 interface ReviewListRecord {
   id: string
   documentName: string
-  dimensions: ReviewDimension[]
+  dimensions: string[]
   severityCounts: {
     critical: number
     warning: number
@@ -216,10 +215,10 @@ async function loadRecords() {
   loading.value = true
   loadError.value = ''
   try {
-    const response = await getReviewListApi({
-      page: page.value,
-      pageSize: pageSize.value,
-    })
+    const response = await getConflictReviewList(
+      page.value,
+      pageSize.value,
+    )
     if (requestId !== latestRequestId) return
     totalRecords.value = response.total
     page.value = response.page
@@ -263,11 +262,11 @@ function normalizeSeverityCounts(value: Record<string, number> | string | null |
   }
 }
 
-function mapListItem(item: ReviewRecordListItemData): ReviewListRecord {
+function mapListItem(item: ConflictReviewListItem): ReviewListRecord {
   return {
     id: item.id,
     documentName: item.documentName,
-    dimensions: normalizeStringArray(item.dimensions) as ReviewDimension[],
+    dimensions: [item.reviewType || 'internal'],
     severityCounts: normalizeSeverityCounts(item.summary),
     status: item.status || 'pending',
     createdAt: item.createdAt,
@@ -287,7 +286,7 @@ const latestDate = computed(() => {
 })
 
 function dimLabel(d: string): string {
-  return { compliance: '规范符合性', completeness: '完整性检查', terminology: '术语规范性' }[d] || d
+  return { superior: '上级符合性', internal: '内部一致性', replacement: '新旧替换', existing: '存量复核', compliance: '规范符合性' }[d] || d
 }
 
 function formatDimensions(dimensions: string[]): string {
