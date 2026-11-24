@@ -668,10 +668,10 @@ onMounted(async () => {
               条文级对照 · 新旧替换模拟 · 双方原文证据 · 人工复核报告
             </p>
             <div class="welcome-tags">
-              <span class="welcome-tag"><el-icon :size="14"><MagicStick /></el-icon> AI 智能生成</span>
-              <span class="welcome-tag"><el-icon :size="14"><Edit /></el-icon> 可视化编辑</span>
-              <span class="welcome-tag"><el-icon :size="14"><Reading /></el-icon> 知识库检索</span>
-              <span class="welcome-tag"><el-icon :size="14"><ChatLineSquare /></el-icon> AI 助手</span>
+              <span class="welcome-tag"><el-icon :size="14"><MagicStick /></el-icon> 条文级审查</span>
+              <span class="welcome-tag"><el-icon :size="14"><Edit /></el-icon> 效力与日期校验</span>
+              <span class="welcome-tag"><el-icon :size="14"><Reading /></el-icon> 新旧替换模拟</span>
+              <span class="welcome-tag"><el-icon :size="14"><ChatLineSquare /></el-icon> 人工复核报告</span>
             </div>
           </div>
           <div class="welcome-banner-visual" aria-hidden="true">

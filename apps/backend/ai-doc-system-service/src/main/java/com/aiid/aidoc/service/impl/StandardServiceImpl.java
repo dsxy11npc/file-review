@@ -78,6 +78,13 @@ public class StandardServiceImpl implements StandardService {
 
     @Override
     public Standard create(Standard standard) {
+        if (standard.getCategory() == null || standard.getCategory().isBlank()) {
+            standard.setCategory("internal");
+        }
+        if (standard.getStatus() == null || standard.getStatus().isBlank()) {
+            standard.setStatus("active");
+        }
+        validateMetadata(standard);
         standard.setId(UUID.randomUUID().toString());
         standard.setCreatedAt(LocalDateTime.now());
         standard.setUpdatedAt(LocalDateTime.now());
@@ -88,15 +95,15 @@ public class StandardServiceImpl implements StandardService {
     @Override
     @Transactional
     public Standard importStandard(StandardImportRequest request, String userId) {
-        if (request.getName() == null || request.getName().isBlank()) {
-            throw new IllegalArgumentException("制度名称不能为空");
-        }
-        if (request.getNumber() == null || request.getNumber().isBlank()) {
-            throw new IllegalArgumentException("制度编号不能为空");
+        if (request.getContent() != null && request.getContent().length() > 1_000_000) {
+            throw new IllegalArgumentException("制度正文不能超过 100 万字符");
         }
         List<RegulationTextParser.ParsedClause> parsedClauses = textParser.parse(request.getContent());
         if (parsedClauses.isEmpty()) {
             throw new IllegalArgumentException("未解析出有效条文");
+        }
+        if (parsedClauses.size() > 2_000) {
+            throw new IllegalArgumentException("单份制度最多支持 2000 个条款或段落");
         }
 
         Standard standard = new Standard();
@@ -140,9 +147,32 @@ public class StandardServiceImpl implements StandardService {
         if (data.getStatus() != null) existing.setStatus(data.getStatus());
         if (data.getSupersededBy() != null) existing.setSupersededBy(data.getSupersededBy());
         if (data.getDescription() != null) existing.setDescription(data.getDescription());
+        validateMetadata(existing);
         existing.setUpdatedAt(LocalDateTime.now());
         standardMapper.updateById(existing);
         return existing;
+    }
+
+    private void validateMetadata(Standard standard) {
+        if (standard.getName() == null || standard.getName().isBlank()) {
+            throw new IllegalArgumentException("制度名称不能为空");
+        }
+        if (standard.getNumber() == null || standard.getNumber().isBlank()) {
+            throw new IllegalArgumentException("制度编号不能为空");
+        }
+        if (standard.getName().length() > 200 || standard.getNumber().length() > 100) {
+            throw new IllegalArgumentException("制度名称或编号过长");
+        }
+        if (!List.of("superior", "internal").contains(standard.getCategory())) {
+            throw new IllegalArgumentException("文件类别只能是 superior 或 internal");
+        }
+        if (!List.of("active", "superseded").contains(standard.getStatus())) {
+            throw new IllegalArgumentException("效力状态只能是 active 或 superseded");
+        }
+        if (standard.getEffectiveDate() != null && standard.getExpiryDate() != null
+                && standard.getExpiryDate().isBefore(standard.getEffectiveDate())) {
+            throw new IllegalArgumentException("失效日期不能早于生效日期");
+        }
     }
 
     @Override

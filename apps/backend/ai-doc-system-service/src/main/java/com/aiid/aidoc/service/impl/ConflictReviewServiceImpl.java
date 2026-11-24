@@ -36,6 +36,9 @@ public class ConflictReviewServiceImpl implements ConflictReviewService {
     private static final Set<String> REVIEW_TYPES = Set.of("superior", "internal", "replacement", "existing");
     private static final Set<String> ISSUE_STATUSES = Set.of("pending", "resolved", "ignored");
     private static final int MAX_CONTENT_LENGTH = 1_000_000;
+    private static final int MAX_SOURCE_CLAUSES = 2_000;
+    private static final int MAX_STANDARD_IDS = 200;
+    private static final long MAX_COMPARISONS = 2_000_000L;
 
     private final ReviewRecordMapper reviewRecordMapper;
     private final ReviewIssueMapper reviewIssueMapper;
@@ -53,6 +56,9 @@ public class ConflictReviewServiceImpl implements ConflictReviewService {
         if (documentName.isBlank()) {
             throw new IllegalArgumentException("制度名称不能为空");
         }
+        if (documentName.length() > 200) {
+            throw new IllegalArgumentException("制度名称不能超过 200 个字符");
+        }
         if (content.isBlank()) {
             throw new IllegalArgumentException("制度正文不能为空");
         }
@@ -67,24 +73,42 @@ public class ConflictReviewServiceImpl implements ConflictReviewService {
         if (standardIds.isEmpty()) {
             throw new IllegalArgumentException("请至少选择一份对照制度");
         }
+        if (standardIds.size() > MAX_STANDARD_IDS) {
+            throw new IllegalArgumentException("单次最多选择 200 份对照制度");
+        }
         Set<String> replacedIds = new LinkedHashSet<>(distinct(request.getReplacedStandardIds()));
         if (!"replacement".equals(reviewType) && !replacedIds.isEmpty()) {
             throw new IllegalArgumentException("只有替换审查可以设置被替换制度");
+        }
+        if ("replacement".equals(reviewType)) {
+            if (replacedIds.isEmpty()) {
+                throw new IllegalArgumentException("替换审查请至少选择一份被替换的旧制度");
+            }
+            if (!standardIds.containsAll(replacedIds)) {
+                throw new IllegalArgumentException("被替换制度必须同时包含在对照制度中");
+            }
         }
         LocalDate baselineDate = request.getBaselineDate() == null ? LocalDate.now() : request.getBaselineDate();
         List<RegulationTextParser.ParsedClause> sourceClauses = textParser.parse(content);
         if (sourceClauses.isEmpty()) {
             throw new IllegalArgumentException("未能从文件中解析出条款或段落");
         }
+        if (sourceClauses.size() > MAX_SOURCE_CLAUSES) {
+            throw new IllegalArgumentException("单次审查最多支持 2000 个条款或段落");
+        }
 
         List<Standard> selectedStandards = loadStandards(standardIds);
         if (selectedStandards.size() != standardIds.size()) {
             throw new IllegalArgumentException("部分对照制度不存在，请刷新制度库");
         }
+        validateStandardCategories(selectedStandards, reviewType);
         List<ConflictReviewEngine.ComparisonClause> comparisons = buildComparisons(
                 selectedStandards, replacedIds, reviewType, baselineDate);
         if (comparisons.isEmpty()) {
             throw new IllegalArgumentException("所选制度在基准日期下没有可比较的有效条文");
+        }
+        if ((long) sourceClauses.size() * comparisons.size() > MAX_COMPARISONS) {
+            throw new IllegalArgumentException("本次条款组合过多，请减少对照制度后分批审查");
         }
 
         ReviewRecord record = new ReviewRecord();
@@ -134,7 +158,9 @@ public class ConflictReviewServiceImpl implements ConflictReviewService {
         }
 
         Map<String, Object> summary = new LinkedHashMap<>(result.summary());
-        summary.put("comparedStandardCount", selectedStandards.size());
+        summary.put("selectedStandardCount", selectedStandards.size());
+        summary.put("comparedStandardCount", comparisons.stream()
+                .map(comparison -> comparison.standard().getId()).distinct().count());
         summary.put("excludedReplacedCount", replacedIds.size());
         record.setSummary(toJson(summary));
         record.setStatus("completed");
@@ -182,6 +208,18 @@ public class ConflictReviewServiceImpl implements ConflictReviewService {
             return "superior";
         }
         return "internal";
+    }
+
+    private void validateStandardCategories(List<Standard> standards, String reviewType) {
+        for (Standard standard : standards) {
+            boolean superior = "superior".equals(standard.getCategory());
+            if (("superior".equals(reviewType) || "existing".equals(reviewType)) && !superior) {
+                throw new IllegalArgumentException("上级符合性审查只能选择上级文件");
+            }
+            if (("internal".equals(reviewType) || "replacement".equals(reviewType)) && superior) {
+                throw new IllegalArgumentException("内部一致性及替换审查只能选择内部制度");
+            }
+        }
     }
 
     private List<Standard> loadStandards(List<String> ids) {
@@ -233,7 +271,11 @@ public class ConflictReviewServiceImpl implements ConflictReviewService {
             return null;
         }
         issue.setStatus(status);
-        issue.setReviewComment(normalize(comment));
+        String normalizedComment = normalize(comment);
+        if (normalizedComment.length() > 2_000) {
+            throw new IllegalArgumentException("复核意见不能超过 2000 个字符");
+        }
+        issue.setReviewComment(normalizedComment);
         reviewIssueMapper.updateById(issue);
         return issue;
     }

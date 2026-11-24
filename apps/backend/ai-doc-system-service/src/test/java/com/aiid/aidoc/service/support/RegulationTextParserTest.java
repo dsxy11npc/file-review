@@ -29,4 +29,13 @@ class RegulationTextParserTest {
         assertEquals("段落1", clauses.get(0).clauseNumber());
         assertEquals("第一段内容", clauses.get(0).content());
     }
+
+    @Test
+    void parsesBomAndFullWidthClauseNumber() {
+        List<RegulationTextParser.ParsedClause> clauses = parser.parse("\uFEFF第１条：制度正文");
+
+        assertEquals(1, clauses.size());
+        assertEquals("第１条", clauses.get(0).clauseNumber());
+        assertEquals("制度正文", clauses.get(0).content());
+    }
 }

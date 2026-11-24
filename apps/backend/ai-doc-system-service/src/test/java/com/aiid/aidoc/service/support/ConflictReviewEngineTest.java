@@ -55,6 +55,45 @@ class ConflictReviewEngineTest {
         assertTrue(result.findings().isEmpty());
     }
 
+    @Test
+    void detectsChineseNumbersAndFullWidthDigits() {
+        Standard standard = standard("上级请假制度");
+        Clause clause = clause("上级请假制度", "员工请假不得超过二十个工作日。");
+
+        ConflictReviewEngine.EngineResult result = engine.review(
+                parser.parse("第一条 员工请假不得超过３个工作日。"),
+                List.of(new ConflictReviewEngine.ComparisonClause(standard, clause, "superior"))
+        );
+
+        assertTrue(result.findings().stream().anyMatch(f -> f.conflictType().equals("numeric_standard")));
+    }
+
+    @Test
+    void comparesAmountsAcrossYuanAndTenThousandYuan() {
+        Standard standard = standard("采购制度");
+        Clause clause = clause("采购制度", "采购金额超过1万元应履行集体审批程序。");
+
+        ConflictReviewEngine.EngineResult result = engine.review(
+                parser.parse("第一条 采购金额超过5000元应履行集体审批程序。"),
+                List.of(new ConflictReviewEngine.ComparisonClause(standard, clause, "internal"))
+        );
+
+        assertTrue(result.findings().stream().anyMatch(f -> f.conflictType().equals("numeric_standard")));
+    }
+
+    @Test
+    void ignoresCalendarYearsInsteadOfTreatingThemAsDurations() {
+        Standard standard = standard("档案制度");
+        Clause clause = clause("档案制度", "档案保存期限为3年。");
+
+        ConflictReviewEngine.EngineResult result = engine.review(
+                parser.parse("第一条 二〇二六年形成的档案应单独编目。"),
+                List.of(new ConflictReviewEngine.ComparisonClause(standard, clause, "internal"))
+        );
+
+        assertTrue(result.findings().stream().noneMatch(f -> f.conflictType().equals("numeric_standard")));
+    }
+
     private static Standard standard(String name) {
         Standard standard = new Standard();
         standard.setId("standard-1");

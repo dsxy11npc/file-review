@@ -10,10 +10,13 @@ import java.util.regex.Pattern;
 @Component
 public class RegulationTextParser {
     private static final Pattern CLAUSE_HEADING = Pattern.compile(
-            "(?m)^\\s*(第[零〇一二三四五六七八九十百千万两0-9]+条)(?:[、.．\\s　]*)");
+            "(?m)^\\s*(第[零〇一二三四五六七八九十百千万两0-9０-９]+条)(?:[、.．:：\\s　]*)");
 
     public List<ParsedClause> parse(String text) {
         String normalized = text == null ? "" : text.replace("\r\n", "\n").replace('\r', '\n');
+        if (!normalized.isEmpty() && normalized.charAt(0) == '\uFEFF') {
+            normalized = normalized.substring(1);
+        }
         Matcher matcher = CLAUSE_HEADING.matcher(normalized);
         List<ClausePosition> positions = new ArrayList<>();
         while (matcher.find()) {

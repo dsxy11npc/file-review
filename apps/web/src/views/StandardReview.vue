@@ -66,6 +66,10 @@
           <span>选择对照制度（{{ selectedStandardIds.length }}）</span>
           <el-input v-model="keyword" size="small" clearable placeholder="搜索编号或名称" :prefix-icon="Search" />
         </div>
+        <div class="scope-actions">
+          <el-button size="small" @click="selectEffectiveStandards">选择基准日有效制度</el-button>
+          <el-button size="small" text :disabled="selectedStandardIds.length === 0" @click="clearSelectedStandards">清空选择</el-button>
+        </div>
         <div v-loading="loadingStandards" class="standard-list">
           <label v-for="standard in filteredStandards" :key="standard.id" class="standard-item">
             <input v-model="selectedStandardIds" type="checkbox" :value="standard.id" />
@@ -123,7 +127,7 @@ const fileName = ref('')
 const content = ref('')
 const sourceClauses = ref(0)
 const reviewType = ref<ConflictReviewType>('superior')
-const baselineDate = ref(new Date().toISOString().slice(0, 10))
+const baselineDate = ref(todayLocal())
 const standards = ref<Standard[]>([])
 const selectedStandardIds = ref<string[]>([])
 const replacedStandardIds = ref<string[]>([])
@@ -145,7 +149,11 @@ const filteredStandards = computed(() => {
   return availableStandards.value.filter(item => !value || `${item.number}${item.name}`.toLowerCase().includes(value))
 })
 const selectedStandards = computed(() => standards.value.filter(item => selectedStandardIds.value.includes(item.id)))
-const canSubmit = computed(() => content.value.trim().length > 0 && selectedStandardIds.value.length > 0 && !creating.value)
+const canSubmit = computed(() => content.value.trim().length > 0
+  && selectedStandardIds.value.length > 0
+  && Boolean(baselineDate.value)
+  && (reviewType.value !== 'replacement' || replacedStandardIds.value.length > 0)
+  && !creating.value)
 
 watch(reviewType, () => {
   const allowed = new Set(availableStandards.value.map(item => item.id))
@@ -175,9 +183,10 @@ async function handleFile(uploadFile: { raw?: UploadRawFile; name: string }) {
     uploadRef.value?.clearFiles()
     return
   }
-  content.value = await file.text()
+  content.value = (await file.text()).replace(/^\uFEFF/, '')
   fileName.value = file.name
   countClauses()
+  if (!content.value.trim()) ElMessage.warning('文件正文为空')
 }
 
 function handleExceed(files: File[]) {
@@ -192,8 +201,31 @@ function clearFile() {
 }
 
 function countClauses() {
-  const matches = content.value.match(/^\s*第[零〇一二三四五六七八九十百千万两0-9]+条/gm)
-  sourceClauses.value = matches?.length || content.value.split(/\n\s*\n|\n/).filter(line => line.trim()).length
+  const matches = content.value.match(/^\s*第[零〇一二三四五六七八九十百千万两0-9０-９]+条/gm)
+  sourceClauses.value = matches?.length || content.value.split(/\n\s*\n|\n/)
+    .filter(line => line.trim() && !/^#{1,6}\s+/.test(line.trim())).length
+}
+
+function todayLocal() {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}-${month}-${day}`
+}
+
+function isEffectiveOnBaseline(standard: Standard) {
+  if (standard.status !== 'active') return false
+  if (standard.effectiveDate && standard.effectiveDate > baselineDate.value) return false
+  return !standard.expiryDate || standard.expiryDate >= baselineDate.value
+}
+
+function selectEffectiveStandards() {
+  selectedStandardIds.value = availableStandards.value.filter(isEffectiveOnBaseline).map(item => item.id)
+}
+
+function clearSelectedStandards() {
+  selectedStandardIds.value = []
+  replacedStandardIds.value = []
 }
 
 async function submit() {
@@ -234,6 +266,7 @@ async function submit() {
 .form-card :deep(.el-textarea) { margin-top: 12px; }
 .scope-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; font-size: 13px; }
 .scope-toolbar .el-input { width: 210px; }
+.scope-actions { display: flex; align-items: center; margin-bottom: 10px; }
 .standard-list { max-height: 340px; min-height: 180px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px; }
 .standard-item { display: flex; gap: 10px; padding: 12px; border-bottom: 1px solid #f0f2f5; cursor: pointer; }
 .standard-item:hover { background: #f8fafc; }

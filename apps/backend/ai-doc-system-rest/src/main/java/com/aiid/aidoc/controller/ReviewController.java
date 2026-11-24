@@ -288,8 +288,9 @@ public class ReviewController {
      * 删除审查记录（级联删除问题列表）
      */
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> deleteReview(@PathVariable String id) {
-        boolean ok = reviewService.delete(id);
+    public ApiResponse<Void> deleteReview(@PathVariable String id, HttpServletRequest request) {
+        String userId = (String) request.getAttribute("userId");
+        boolean ok = reviewService.delete(id, userId);
         if (!ok) {
             return ApiResponse.message(404, "审查记录不存在");
         }
@@ -301,14 +302,17 @@ public class ReviewController {
      */
     @PutMapping("/{recordId}/issues/{issueId}")
     public ApiResponse<ReviewIssue> updateIssueStatus(
+            @PathVariable String recordId,
             @PathVariable String issueId,
-            @RequestBody Map<String, String> body
+            @RequestBody Map<String, String> body,
+            HttpServletRequest request
     ) {
+        String userId = (String) request.getAttribute("userId");
         String status = body.get("status");
         if (status == null || (!status.equals("pending") && !status.equals("resolved") && !status.equals("ignored"))) {
             return ApiResponse.message(400, "无效的状态值，可选: pending / resolved / ignored");
         }
-        ReviewIssue updated = reviewService.updateIssueStatus(issueId, status);
+        ReviewIssue updated = reviewService.updateIssueStatus(recordId, issueId, userId, status);
         if (updated == null) {
             return ApiResponse.message(404, "问题不存在");
         }

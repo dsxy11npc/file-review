@@ -124,9 +124,9 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @Transactional
-    public boolean delete(String id) {
+    public boolean delete(String id, String userId) {
         ReviewRecord existing = reviewRecordMapper.selectById(id);
-        if (existing == null) return false;
+        if (existing == null || userId == null || !userId.equals(existing.getUserId())) return false;
         reviewIssueMapper.delete(
                 new LambdaQueryWrapper<ReviewIssue>().eq(ReviewIssue::getRecordId, id)
         );
@@ -135,9 +135,11 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
-    public ReviewIssue updateIssueStatus(String issueId, String status) {
+    public ReviewIssue updateIssueStatus(String recordId, String issueId, String userId, String status) {
+        ReviewRecord record = reviewRecordMapper.selectById(recordId);
+        if (record == null || userId == null || !userId.equals(record.getUserId())) return null;
         ReviewIssue issue = reviewIssueMapper.selectById(issueId);
-        if (issue == null) return null;
+        if (issue == null || !recordId.equals(issue.getRecordId())) return null;
         issue.setStatus(status);
         reviewIssueMapper.updateById(issue);
         return issue;

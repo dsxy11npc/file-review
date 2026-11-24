@@ -388,8 +388,9 @@ async function handleImportFile(uploadFile: { raw?: File }) {
     ElMessage.warning('仅支持不超过 1MB 的 .md、.txt 文件')
     return
   }
-  importForm.value.content = await file.text()
+  importForm.value.content = (await file.text()).replace(/^\uFEFF/, '')
   if (!importForm.value.name) importForm.value.name = file.name.replace(/\.(md|txt)$/i, '')
+  if (!importForm.value.content.trim()) ElMessage.warning('文件正文为空')
 }
 
 async function handleImportStandard() {

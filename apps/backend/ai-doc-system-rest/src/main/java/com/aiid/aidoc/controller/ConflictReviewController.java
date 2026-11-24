@@ -73,6 +73,9 @@ public class ConflictReviewController {
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "20") long pageSize,
             HttpServletRequest request) {
+        if (page < 1 || pageSize < 1 || pageSize > 100) {
+            return ApiResponse.message(400, "页码必须大于 0，每页数量须在 1 到 100 之间");
+        }
         Page<ReviewRecord> result = conflictReviewService.list(userId(request), page, pageSize);
         PaginationResponse<ReviewRecord> response = new PaginationResponse<>();
         response.setTotal(result.getTotal());

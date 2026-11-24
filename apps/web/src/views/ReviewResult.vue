@@ -14,7 +14,7 @@
 
       <section class="summary-bar">
         <div><strong>{{ record.clauseCount }}</strong><span>待审条款</span></div>
-        <div><strong>{{ record.summary.comparedStandardCount || record.standardIds.length }}</strong><span>对照制度</span></div>
+        <div><strong>{{ record.summary?.comparedStandardCount ?? record.standardIds?.length ?? 0 }}</strong><span>实际对照制度</span></div>
         <div><strong>{{ issues.length }}</strong><span>疑似问题</span></div>
         <div><strong>{{ pendingCount }}</strong><span>待复核</span></div>
         <p>基准日期：{{ record.baselineDate }} · 引擎：{{ record.engineVersion }} · 结果仅供人工复核</p>
@@ -28,13 +28,20 @@
 
         <section class="issues-panel">
           <div class="panel-title issue-title">
-            <span>疑似问题</span>
-            <el-select v-model="scopeFilter" size="small" clearable placeholder="全部范围" style="width: 150px">
+            <span>疑似问题（{{ filteredIssues.length }}）</span>
+            <div class="issue-filters">
+              <el-select v-model="statusFilter" size="small" clearable placeholder="全部状态" style="width: 115px">
+                <el-option label="待复核" value="pending" />
+                <el-option label="已确认" value="resolved" />
+                <el-option label="已排除" value="ignored" />
+              </el-select>
+              <el-select v-model="scopeFilter" size="small" clearable placeholder="全部范围" style="width: 140px">
               <el-option label="上级文件" value="superior" />
               <el-option label="内部制度" value="internal" />
               <el-option label="替换后体系" value="remaining_internal" />
               <el-option label="旧版本对照" value="old_version" />
-            </el-select>
+              </el-select>
+            </div>
           </div>
           <div v-if="filteredIssues.length === 0" class="empty-issues">
             <el-empty description="当前范围内未发现规则可识别的疑似冲突" :image-size="80" />
@@ -65,7 +72,7 @@
         </div>
         <div class="analysis"><strong>分析理由</strong><p>{{ activeIssue.description }}</p></div>
         <div class="suggestion"><strong>修改建议</strong><p>{{ activeIssue.suggestionText }}</p></div>
-        <el-input v-model="reviewComment" type="textarea" :rows="2" placeholder="填写人工复核意见（可选）" />
+        <el-input v-model="reviewComment" type="textarea" :rows="2" maxlength="2000" show-word-limit placeholder="填写人工复核意见（可选）" />
         <div class="decision-actions">
           <el-button type="success" :loading="saving" @click="decide('resolved')">确认问题</el-button>
           <el-button :loading="saving" @click="decide('ignored')">排除问题</el-button>
@@ -97,11 +104,15 @@ const issues = ref<ConflictIssue[]>([])
 const activeIssue = ref<ConflictIssue | null>(null)
 const reviewComment = ref('')
 const scopeFilter = ref('')
+const statusFilter = ref('')
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
 const pendingCount = computed(() => issues.value.filter(issue => issue.status === 'pending').length)
-const filteredIssues = computed(() => scopeFilter.value ? issues.value.filter(issue => issue.reviewScope === scopeFilter.value) : issues.value)
+const filteredIssues = computed(() => issues.value.filter(issue =>
+  (!scopeFilter.value || issue.reviewScope === scopeFilter.value)
+  && (!statusFilter.value || issue.status === statusFilter.value)
+))
 const reviewTypeLabel = computed(() => ({ superior: '上级符合性', internal: '内部一致性', replacement: '新旧替换', existing: '存量复核' }[record.value?.reviewType || ''] || '制度审查'))
 
 onMounted(async () => {
@@ -210,7 +221,8 @@ function appendIssues(lines: string[], items: ConflictIssue[]) {
 .source-panel, .issues-panel, .detail-panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }
 .panel-title { padding: 13px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600; font-size: 14px; }
 .source-content { padding: 24px; white-space: pre-wrap; line-height: 1.9; color: #374151; font-size: 14px; }
-.issue-title { display: flex; align-items: center; justify-content: space-between; }
+.issue-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.issue-filters { display: flex; gap: 8px; }
 .issue-row { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 13px 14px; background: #fff; border: 0; border-bottom: 1px solid #f0f2f5; text-align: left; cursor: pointer; }
 .issue-row:hover, .issue-row.active { background: #eff6ff; }
 .issue-row.handled { opacity: .65; }

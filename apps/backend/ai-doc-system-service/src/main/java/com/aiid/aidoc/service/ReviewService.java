@@ -17,8 +17,8 @@ public interface ReviewService {
     ReviewRecord getById(String id);
     List<ReviewIssue> getIssues(String recordId);
     Page<ReviewRecord> list(String userId, long page, long pageSize);
-    boolean delete(String id);
-    ReviewIssue updateIssueStatus(String issueId, String status);
+    boolean delete(String id, String userId);
+    ReviewIssue updateIssueStatus(String recordId, String issueId, String userId, String status);
     ReviewSourceAccessResponse getSourceAccess(String reviewId, String userId);
     ReviewManifestResponse getManifest(String reviewId, String accessToken);
     byte[] getSourceFile(String reviewId, String accessToken);

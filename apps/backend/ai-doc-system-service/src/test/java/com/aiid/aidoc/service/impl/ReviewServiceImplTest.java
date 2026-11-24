@@ -24,7 +24,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -99,6 +101,28 @@ class ReviewServiceImplTest {
         assertNotNull(expiresAt);
         assertTrue(!(expiresAt instanceof LocalDateTime));
         assertTrue(String.valueOf(expiresAt).matches(".+(Z|[+-][0-9]{2}:[0-9]{2})$"));
+    }
+
+    @Test
+    void deleteRejectsRecordOwnedByAnotherUser() {
+        ReviewServiceImpl reviewService = new ReviewServiceImpl(
+                reviewRecordMapper, reviewIssueMapper, standardMapper, clauseMapper, checkpointMapper,
+                objectMapper, ossProperties("bucket", "cn-guangzhou", "endpoint", null), new AppProperties()
+        );
+        when(reviewRecordMapper.selectById("review-1")).thenReturn(reviewRecord("review-1", "user-1"));
+
+        assertFalse(reviewService.delete("review-1", "user-2"));
+    }
+
+    @Test
+    void issueDecisionRejectsRecordOwnedByAnotherUser() {
+        ReviewServiceImpl reviewService = new ReviewServiceImpl(
+                reviewRecordMapper, reviewIssueMapper, standardMapper, clauseMapper, checkpointMapper,
+                objectMapper, ossProperties("bucket", "cn-guangzhou", "endpoint", null), new AppProperties()
+        );
+        when(reviewRecordMapper.selectById("review-1")).thenReturn(reviewRecord("review-1", "user-1"));
+
+        assertNull(reviewService.updateIssueStatus("review-1", "issue-1", "user-2", "resolved"));
     }
 
     private static ReviewRecord reviewRecord(String reviewId, String userId) {

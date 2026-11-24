@@ -21,6 +21,12 @@ public class GlobalExceptionHandler {
         return ApiResponse.message(403, "功能未授权: " + e.getMessage());
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<Void> handleIllegalArgumentException(IllegalArgumentException e) {
+        return ApiResponse.message(400, e.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Void> handleValidationException(MethodArgumentNotValidException e) {

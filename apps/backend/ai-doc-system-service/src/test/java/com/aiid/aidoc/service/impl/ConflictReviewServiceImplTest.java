@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
@@ -75,6 +76,29 @@ class ConflictReviewServiceImplTest {
         verify(issueMapper, atLeastOnce()).insert(issueCaptor.capture());
         assertEquals("old_version", issueCaptor.getValue().getReviewScope());
         assertTrue(result.getSummary().contains("\"excludedReplacedCount\":1"));
+    }
+
+    @Test
+    void replacementRequiresAnOldStandardIncludedInTheScope() {
+        ConflictReviewServiceImpl service = service();
+        ConflictReviewCreateRequest request = request("replacement", "old-1");
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> service.create("user-1", request));
+
+        assertEquals("替换审查请至少选择一份被替换的旧制度", error.getMessage());
+    }
+
+    @Test
+    void superiorReviewRejectsInternalStandards() {
+        Standard internal = standard("internal-1", "内部制度", "internal", "active");
+        when(standardMapper.selectById("internal-1")).thenReturn(internal);
+        ConflictReviewServiceImpl service = service();
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> service.create("user-1", request("superior", "internal-1")));
+
+        assertEquals("上级符合性审查只能选择上级文件", error.getMessage());
     }
 
     private ConflictReviewServiceImpl service() {
